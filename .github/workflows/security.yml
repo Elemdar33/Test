@@ -19,3 +19,5 @@ jobs:
           spec: openapi.json
           scan-source: .
           fail-on: none
+          auto-pr: true
+
