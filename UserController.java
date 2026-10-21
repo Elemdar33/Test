@@ -6,6 +6,9 @@ public class UserController {
         System.out.println("Deleting user ID: " + id);
     }
 
+    // [AUTO-FIX: CORS_REFLECTED_ORIGIN]
+    // [Remediation: CORS Reflected Origin] Validate origin against a strict whitelist
+@CrossOrigin(origins = {"https://trusted-app.example.com", "https://admin.example.com"}, allowCredentials = "true")
     public String getUser(String id) {
         return "User: " + id;
     }
@@ -14,3 +17,4 @@ public class UserController {
         return "SELECT * FROM users WHERE username = '" + search + "'";
     }
 }
+
