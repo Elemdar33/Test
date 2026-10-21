@@ -1,26 +1,54 @@
-name: API Security Scanner Test
+name: API Security Scan & Compliance
 
 on:
   push:
-    branches: [ main ]
-  workflow_dispatch:
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
+  pull-requests: write     # Zero-Click Auto-PR və PR şərhləri üçün
+  security-events: write   # GitHub "Security" bölməsinə yükləmək üçün
+  actions: read
 
 jobs:
   scan:
+    name: DAST + SAST Hybrid Scan
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Run API Security Scanner
         uses: apisecurityscanner/apisecurityscanner.github.io@v1.0.0
         with:
-          license-key: 'sec_live_pro123456789012345678901_a97c82c77a'
           spec: openapi.json
-          scan-source: .
+          base-url: https://staging.example.com
+          auth-token: ${{ secrets.API_TOKEN }}
+          license-key: ${{ secrets.SCANNER_LICENSE_KEY }}
           auto-pr: true
-          fail-on: none
+          fail-on: none                       # İş qırılmasın deyə 'none' və ya 'high' qoya bilərsiniz
+          output: scan-report.json
+          sarif-output: scan-report.sarif
+          html-output: scan-report.html
+
+      # 1. 📦 Bütün Hesabatları Actions-da Yüklənə Bilən Fayl (Artifact) Kimi Təqdim Etmək
+      - name: Upload Security Reports as Artifacts
+        uses: actions/upload-artifact@v4
+        if: always()                         # Skan uğursuz olsa belə faylları həmişə yükləsin
+        with:
+          name: api-security-reports
+          path: |
+            scan-report.html
+            scan-report.sarif
+            scan-report.json
+          retention-days: 30
+
+      # 2. 🛡️ Nəticələri GitHub 'Security -> Code scanning' Bölməsinə Göndərmək
+      - name: Upload to GitHub Security Tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: scan-report.sarif
+          category: api-security-scanner
